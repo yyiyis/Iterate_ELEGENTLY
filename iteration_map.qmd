@@ -1,0 +1,181 @@
+---
+title: "Iterate ELEGANTLY"
+author: "YYS"
+date: "2024-6-22"
+toc: true
+number-sections: true
+format:
+  html:
+    theme: litera
+    code-fold: true
+    code-tools: true
+    df-print: kable
+  docx: 
+    execute:
+    echo: false
+    df-print: kable
+---
+
+🌀️ **Main purpose**
+
+We want to do somethings more than one times (repeat......)
+
+-   we can do this each by each (such as `filter` the subset)
+
+-   or the best (or I mean `I am lazy`): **ITERATE** using `map` in `tidyverse`
+
+😀**once again**, the `tidyverse` is the most close to our brain.
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(warning = F, message = F, dpi = 300)
+```
+
+```{r}
+#| include: false
+rm(list = ls())
+```
+
+# load packages and data
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+```
+
+------------------------------------------------------------------------
+
+🌐Let build an very easy data frame here
+
+ℹ️Note: `567` is the character name of one of my best favorite cartoon *Scissor Seven*
+
+```{r}
+set.seed(567)
+df <-
+  tibble(
+    x1 = rnorm(10, 3, 1),
+    x2 = rnorm(10, 5, 1),
+    x3 = rnorm(10, 2, 1),
+    y = rnorm(10, 6, 1)
+  )
+
+df
+```
+
+💦we want to fit 3 linear regression models:
+
+-   y \~ x1
+
+-   y \~ x2, and
+
+-   y \~ x3
+
+🔎Obviously, there exist repeat action, and I am very lazy to repeat it.
+
+💡So, USE `map`!
+
+------------------------------------------------------------------------
+
+# tidy
+
+1.  1️⃣The first thing needed is to tidy the data, transform the original data into long data form.
+
+`pivot_longer` is a good choice.
+
+```{r}
+df_use <- df |> 
+  pivot_longer(
+    cols = x1:x3, 
+    names_to = "variable", 
+    values_to = "x_value"
+  ) |> 
+  arrange(variable)
+
+df_use
+```
+
+------------------------------------------------------------------------
+
+# write function
+
+2.  2️⃣The second thing, write your `function`
+
+ℹ️Note: There are a host of self-writen function in my quarto, for future use repeatably.
+
+```{r}
+yysfun_lm <- function(data){
+  fit <- lm(y ~ x_value, data)
+  fit |> tidy()
+}
+```
+
+This is a extremely function here, we fit a linear regression, and then get its results
+
+------------------------------------------------------------------------
+
+# Iterate
+
+3.  3️⃣The third thing: using `map` to iterate like below.
+
+```{r}
+map(df_use %>% split(.$variable), yysfun_lm) |> 
+  data.table::rbindlist(idcol = "Different X")
+```
+
+ℹ️Note:
+
+-   Must use pipe `%>%` from `tidyverse` rather than `|>` from base.
+
+-   Since the return results is a list contain some dataframe, so here we use `data.table::rbindlist` to bind these results with a new marked variable `Different X`
+
+------------------------------------------------------------------------
+
+# where is the idea from?
+
+😜**r4ds**
+
+And I recommend this book to lots of my classmates.
+
+In the 1st version of the book, chapter 16,
+
+This is the example in this book
+
+```{r}
+models <- mtcars %>%
+  split(.$cyl) %>%
+  map(function(df) lm(mpg ~ wt, data = df))
+```
+
+or
+
+```{r}
+models <- mtcars %>%
+  split(.$cyl) %>%
+  map( ~ lm(mpg ~ wt, data = .))
+```
+
+```{r}
+models %>%
+  map(summary) %>%
+  map_dbl("r.squared") 
+```
+
+🤔**I think it's not ELEGANT enough**
+
+-   not very sharply to understand
+
+-   I want to use it for other objections
+
+------------------------------------------------------------------------
+
+🌈Inspired by the idea of pipe operation and my extensive experience in writing functions,
+
+why not upgrade (or creat) the workflow of map for iteration !
+
+------------------------------------------------------------------------
+
+The results is that, the example at the beginning, I successed.
+
+Actually, I have used this workflow many times in my daily work, it's really interesting and useful.
+
+⚕️`I am very lazy, but isn’t being lazy the driving force that sparks creativity and innovation ?`
